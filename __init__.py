@@ -19,34 +19,34 @@ MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July'
 ABBREVIATED_MONTH_NAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
                            'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
-TIMEZONES = ('', 'UTC')
+TIMEZONES = ('', 'Z')
 
 NOT_IMPLEMENTED = None
 
 class DIRECTIVES:
-    ABBREV_WEEKDAY_NAME = '%a'
-    WEEKDAY_NAME = '%A'
-    ABBREV_MONTH_NAME = '%b'
-    MONTH_NAME = '%B'
-    LOCALE_DATETIME = '%c'
-    DAY_OF_MONTH = '%d'
-    HOUR_24 = '%H'
-    HOUR_12 = '%I'
-    DAY_OF_YEAR = '%j'
-    MONTH = '%m'
-    MINUTE = '%M'
-    AM_PM = '%p'
-    SECOND = '%S'
-    WEEK_OF_YEAR_SUNDAY = '%U'
-    DAY_OF_WEEK = '%w'
-    WEEK_OF_YEAR_MONDAY = '%W'
-    LOCALE_DATE = '%x'
-    LOCALE_TIME = '%X'
-    YEAR_NO_CENTURY = '%y'
-    YEAR = '%Y'
-    TIME_ZONE_OFFSET = '%z'
-    TIME_ZONE = '%Z'
-    PERCENT = '%%'
+    ABBREV_WEEKDAY_NAME = 'a'
+    WEEKDAY_NAME = 'A'
+    ABBREV_MONTH_NAME = 'b'
+    MONTH_NAME = 'B'
+    LOCALE_DATETIME = 'c'
+    DAY_OF_MONTH = 'd'
+    HOUR_24 = 'H'
+    HOUR_12 = 'I'
+    DAY_OF_YEAR = 'j'
+    MONTH = 'm'
+    MINUTE = 'M'
+    AM_PM = 'p'
+    SECOND = 'S'
+    WEEK_OF_YEAR_SUNDAY = 'U'
+    DAY_OF_WEEK = 'w'
+    WEEK_OF_YEAR_MONDAY = 'W'
+    LOCALE_DATE = 'x'
+    LOCALE_TIME = 'X'
+    YEAR_NO_CENTURY = 'y'
+    YEAR = 'Y'
+    TIME_ZONE_OFFSET = 'z'
+    TIME_ZONE = 'Z'
+    PERCENT = '%'
 
 class STRUCT_TIME:
     TM_YEAR = 'tm_year'
@@ -126,7 +126,7 @@ DIRECTIVE_PARSER_MAP = {
     DIRECTIVES.YEAR: positive_integer_parser(_len=4, _max=9999),
     DIRECTIVES.TIME_ZONE_OFFSET: NOT_IMPLEMENTED,
     DIRECTIVES.TIME_ZONE: choice_parser(TIMEZONES),
-    DIRECTIVES.PERCENT: lambda s: s.startswith('%%') and ('%', s[2:]),
+    DIRECTIVES.PERCENT: lambda s: s.startswith('%') and ('', s[2:]),
 }
 
 ###############################################################################
@@ -163,6 +163,9 @@ def directive_to_struct_time_item(directive, value):
         # Return HOUR_12 as TM_HOUR
         # We don't have the am/pm context here so can't do any conversion.
         return STRUCT_TIME.TM_HOUR, value
+    elif directive == DIRECTIVES.MINUTE:
+        # Return INUTE as TM_MIN
+        return STRUCT_TIME.TM_MIN, value
     elif directive == DIRECTIVES.SECOND:
         # Return SECOND as TM_SEC
         return STRUCT_TIME.TM_SEC, value
@@ -178,8 +181,11 @@ def directive_to_struct_time_item(directive, value):
     elif directive == DIRECTIVES.DAY_OF_YEAR:
         # Return DAY_OF_YEAR as TM_YDAY
         return STRUCT_TIME.TM_YDAY, value
+    elif directive == DIRECTIVES.TIME_ZONE:
+        # TODO - maybe do something with time zone?
+        return None
     else:
-        raise NotImplementedError
+        raise NotImplementedError(directive)
 
 def strptime(date_string, format):
     """Attempt to parse the date_string as the specified format and return a
@@ -192,16 +198,17 @@ def strptime(date_string, format):
     struct_time_d = {}
     while i < format_len:
         c = format[i]
+        # If the character is not the start of a directive, attempt to match a
+        # literal character.
         if c != '%':
-            # Attempt a literal match against date_string.
             if date_string[0] != c:
                 return None
             date_string = date_string[1:]
         else:
-            # Read the next character of the format directive.
+            # Read the next character of the directive, letting an IndexError
+            # raise if format is exhausted/malformed.
             i += 1
-            # Let the IndexError raise here if format is malformed.
-            directive = c + format[i]
+            directive = format[i]
             # Raise a ValueError just like the built-in datetime.strptime()
             # if the directive is invalid.
             if directive not in DIRECTIVE_PARSER_MAP:
@@ -209,22 +216,20 @@ def strptime(date_string, format):
                     repr(directive[1]), repr(directive)))
             # Get the parser.
             parser = DIRECTIVE_PARSER_MAP[directive]
-            # Check for a yet-to-be-implemented parser.
+            # Check whether the parser is yet to be implemented.
             if parser is NOT_IMPLEMENTED:
-                raise NotImplementedError
+                raise NotImplementedError(directive)
             # Do the parsing.
             result = parser(date_string)
+            # Return None on any parsing failure.
             if result is False:
                 return None
             value, date_string = result
             # Convert the directive match to a struct_time item.
-            k, v = directive_to_struct_time_item(directive, value)
-            struct_time_d[k] = v
+            kv = directive_to_struct_time_item(directive, value)
+            if kv is not None:
+                struct_time_d[kv[0]] = kv[1]
         i += 1
+
     # Return a struct_time object.
     return struct_time(*[struct_time_d.get(k, 0) for k in struct_time._fields])
-
-
-if __name__ == '__main__':
-    # Run some tests.
-    print(strptime('2020-12-22', '%Y-%m-%d'))
