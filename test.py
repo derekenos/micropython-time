@@ -1,5 +1,6 @@
 
 from __init__ import (
+    ABBREV_MONTH_NUM_DAYS_PAIRS,
     JAN_1_2000_DAY_NUM,
     date_to_day_of_year,
     date_to_day_num,
@@ -20,17 +21,24 @@ from testy import (
 # Test date_to_day_of_year()
 ###############################################################################
 
-def test_date_to_day_of_year_jan_1_2000():
-    assertEqual(
-        date_to_day_of_year(2000, 1, 1),
-        1
-    )
+_days_in_months = lambda n: sum(x[1] for x in ABBREV_MONTH_NUM_DAYS_PAIRS[:n])
 
 def test_date_to_day_of_year():
-    assertEqual(
-        date_to_day_of_year(2020, 12, 23),
-        358
-    )
+    for year, month, day, day_of_year in (
+            (1995, 1, 10, _days_in_months(0) + 10 + 0),
+            (1996, 2, 11, _days_in_months(1) + 11 + 0), # no leap day yet
+            (1997, 3, 12, _days_in_months(2) + 12 + 0),
+            (1998, 4, 13, _days_in_months(3) + 13 + 0),
+            (1999, 5, 14, _days_in_months(4) + 14 + 0),
+            (2000, 6, 15, _days_in_months(5) + 15 + 1),
+            (2001, 7, 16, _days_in_months(6) + 16 + 0),
+            (2002, 8, 17, _days_in_months(7) + 17 + 0),
+            (2003, 9, 18, _days_in_months(8) + 18 + 0),
+            (2004, 10, 19, _days_in_months(9) + 19 + 1),
+            (2005, 11, 20, _days_in_months(10) + 20 + 0),
+            (2006, 12, 21, _days_in_months(11) + 21 + 0),
+        ):
+        assertEqual(date_to_day_of_year(year, month, day), day_of_year)
 
 ###############################################################################
 # Test date_to_day_num()
