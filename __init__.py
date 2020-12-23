@@ -208,6 +208,7 @@ def strptime(date_string, format):
     # chars as appropriate.
     struct_time_d = {}
     utc_offset_minutes = None
+    am_pm = None
     while i < format_len:
         c = format[i]
         # If the character is not the start of a directive, attempt to match a
@@ -245,11 +246,17 @@ def strptime(date_string, format):
             elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
                 # Save the offset.
                 utc_offset_minutes = value
+            elif directive == DIRECTIVES.AM_PM:
+                am_pm = value
             else:
                 # Convert the directive value to a struct_time item.
                 k, v = directive_to_struct_time_item(directive, value)
                 struct_time_d[k] = v
         i += 1
+
+    # Update hour value to 24-hour format if am_pm = 'PM'.
+    if am_pm == 'PM':
+        struct_time_d['tm_hour'] += 12
 
     # Apply any time zone offset to result in UTC.
     if utc_offset_minutes is not None and utc_offset_minutes != 0:

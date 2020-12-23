@@ -42,6 +42,18 @@ def test_iso8601_datetime_utc_timezone_no_delimiters():
         struct_time(2020, 12, 23, 1, 1, 20, 0, 0)
     )
 
+def test_am_time():
+    assertEqual(
+        strptime('08:10AM', '%H:%M%p'),
+        struct_time(0, 0, 0, 8, 10, 0, 0, 0)
+    )
+
+def test_pm_time():
+    assertEqual(
+        strptime('08:10PM', '%H:%M%p'),
+        struct_time(0, 0, 0, 20, 10, 0, 0, 0)
+    )
+
 
 if __name__ == '__main__':
     cli(globals())
