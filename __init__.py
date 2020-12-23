@@ -94,11 +94,7 @@ struct_time = namedtuple('struct_time', (
 ###############################################################################
 
 def is_leap_year(year):
-    if year % 4 != 0:
-        return False
-    if year % 100 == 0 and year % 400 != 0:
-        return False
-    return True
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
 days_in_year = lambda year: 366 if is_leap_year(year) else 365
 
@@ -129,8 +125,13 @@ def date_to_day_num(year, month, day):
     """
     if month == 0 or day == 0:
         raise AssertionError('Please specify 1-based values')
+
     # Calculate the day offset from Jan, 1 in the specified year.
     day_num = date_to_day_of_year(year, month, day)
+
+    # Handle the year 2000.
+    if year == 2000:
+        return (JAN_1_2000_DAY_NUM + day_num - 1) % 7
 
     is_pre_2k = year < 2000
     if is_pre_2k:
@@ -143,8 +144,7 @@ def date_to_day_num(year, month, day):
         start, step = 2000, 1
 
     for _year in range(start, year, step):
-        print(f'\n_year: {_year}')
-        num_days += days_in_year(year)
+        num_days += days_in_year(_year)
 
     # Add the number of days to the day number for Jan 1, 2000 modulus 7
     # to get the current day number.
