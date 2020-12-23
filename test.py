@@ -3,6 +3,7 @@ from __init__ import (
     JAN_1_2000_DAY_NUM,
     date_to_day_of_year,
     date_to_day_num,
+    is_leap_year,
     strptime,
     struct_time,
 )
@@ -35,6 +36,35 @@ def test_date_to_day_of_year():
 # Test date_to_day_num()
 ###############################################################################
 
+def test_is_leap_year():
+    for a, b in (
+            (1796, True),
+            (1800, False),
+            (1900, False),
+            (2000, True),
+            (2100, False),
+            (2200, False),
+            (2300, False),
+            (2400, True),
+            (2500, False),
+        ):
+        assertEqual(is_leap_year(a), b)
+
+def test_date_to_day_num_jan_1_1999_thru_1990():
+    for year, day_num in (
+            (1999, (JAN_1_2000_DAY_NUM - 365) % 7),
+            (1998, (JAN_1_2000_DAY_NUM - 365 * 2) % 7),
+            (1997, (JAN_1_2000_DAY_NUM - 365 * 3) % 7),
+            (1996, (JAN_1_2000_DAY_NUM - 365 * 3 - 366) % 7),
+            (1995, (JAN_1_2000_DAY_NUM - 365 * 4 - 366) % 7),
+            (1994, (JAN_1_2000_DAY_NUM - 365 * 5 - 366) % 7),
+            (1993, (JAN_1_2000_DAY_NUM - 365 * 6 - 366) % 7),
+            (1992, (JAN_1_2000_DAY_NUM - 365 * 6 - 366 * 2) % 7),
+            (1991, (JAN_1_2000_DAY_NUM - 365 * 7 - 366 * 2) % 7),
+            (1990, (JAN_1_2000_DAY_NUM - 365 * 8 - 366 * 2) % 7),
+        ):
+        assertEqual(date_to_day_num(year, 1, 1), day_num)
+
 def test_date_to_day_num_jan_1_2000_thru_2009():
     for year, day_num in (
             (2000, JAN_1_2000_DAY_NUM),
@@ -49,6 +79,22 @@ def test_date_to_day_num_jan_1_2000_thru_2009():
             (2009, (JAN_1_2000_DAY_NUM + 366 * 3 + 365 * 6) % 7),
         ):
         assertEqual(date_to_day_num(year, 1, 1), day_num)
+
+def test_date_to_day_num_spot_check():
+    for year, day_num in (
+            (1601, 4),
+            (1900, 1),
+            (1932, 2),
+            (1937, 5),
+            (1980, 2),
+            (1991, 2),
+            (2000, 6),
+            (2005, 6),
+            (2006, 0),
+        ):
+        print(year)
+        assertEqual(date_to_day_num(year, 1, 1), day_num)
+
 
 def test_date_to_day_num_jan_1_2001():
     assertEqual(

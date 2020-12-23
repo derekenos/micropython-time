@@ -93,6 +93,15 @@ struct_time = namedtuple('struct_time', (
 # Date Helpers
 ###############################################################################
 
+def is_leap_year(year):
+    if year % 4 != 0:
+        return False
+    if year % 100 == 0 and year % 400 != 0:
+        return False
+    return True
+
+days_in_year = lambda year: 366 if is_leap_year(year) else 365
+
 def date_to_day_of_year(year, month, day):
     """Return the day of year for the specified date in the range 1 - 366.
     Note that arguments are expected to be 1-based because 0-based hurts my
@@ -108,7 +117,7 @@ def date_to_day_of_year(year, month, day):
     for i in range(1, month):
         num_days += ABBREV_MONTH_NUM_DAYS_PAIRS[i - 1][1]
     # Maybe add a leap day.
-    if month > 2 and year % 4 == 0:
+    if month > 2 and is_leap_year(year):
         num_days += 1
     # Return the sum of day and prior months' days.
     return num_days + day
@@ -121,19 +130,27 @@ def date_to_day_num(year, month, day):
     if month == 0 or day == 0:
         raise AssertionError('Please specify 1-based values')
     # Calculate the day offset from Jan, 1 in the specified year.
-    num_days = date_to_day_of_year(year, month, day) - 1
+    day_num = date_to_day_of_year(year, month, day)
 
-    # Calculate the number of days offset from Jan, 1, 2000.
-    year_2k_offset = abs(year - 2000)
-    while year_2k_offset > 0:
-        # Pre-decrement here instead of offsetting year_2k_offset by -1 to
-        # compensate for year 2000 inside this loop.
-        year_2k_offset -= 1
-        # Accumulate the number of days in this year into num_days.
-        num_days += 366 if year_2k_offset % 4 == 0 else 365
+    is_pre_2k = year < 2000
+    if is_pre_2k:
+        # Calculate the number of days from the end of the year.
+        num_days = days_in_year(year) - day_num + 1
+        start, step = 1999, -1
+    else:
+        # Calculate the number of days from the beginning of the year.
+        num_days = day_num - 1
+        start, step = 2000, 1
+
+    for _year in range(start, year, step):
+        print(f'\n_year: {_year}')
+        num_days += days_in_year(year)
 
     # Add the number of days to the day number for Jan 1, 2000 modulus 7
     # to get the current day number.
+    if is_pre_2k:
+        num_days = -num_days
+
     return (JAN_1_2000_DAY_NUM + num_days) % 7
 
 
