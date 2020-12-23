@@ -19,8 +19,6 @@ MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July'
 ABBREVIATED_MONTH_NAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
                            'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
-TIME_ZONES = ('', 'Z')
-
 NOT_IMPLEMENTED = None
 
 class DIRECTIVES:
@@ -126,20 +124,20 @@ DIRECTIVE_PARSER_MAP = {
     DIRECTIVES.DAY_OF_MONTH: positive_integer_parser(_len=2, _max=31),
     DIRECTIVES.HOUR_24: positive_integer_parser(_len=2, _max=23),
     DIRECTIVES.HOUR_12: positive_integer_parser(_len=2, _max=12),
-    DIRECTIVES.DAY_OF_YEAR: positive_integer_parser(_len=36, _max=366),
+    DIRECTIVES.DAY_OF_YEAR: positive_integer_parser(_len=3, _max=366),
     DIRECTIVES.MONTH: positive_integer_parser(_len=2, _max=12),
     DIRECTIVES.MINUTE: positive_integer_parser(_len=2, _max=59),
     DIRECTIVES.AM_PM: choice_parser(('AM', 'PM')),
     DIRECTIVES.SECOND: positive_integer_parser(_len=2, _max=59),
-    DIRECTIVES.WEEK_OF_YEAR_SUNDAY: positive_integer_parser(_len=2, _max=53),
+    DIRECTIVES.WEEK_OF_YEAR_SUNDAY: NOT_IMPLEMENTED,
     DIRECTIVES.DAY_OF_WEEK: positive_integer_parser(_len=1, _max=6),
-    DIRECTIVES.WEEK_OF_YEAR_MONDAY: positive_integer_parser(_len=2, _max=53),
+    DIRECTIVES.WEEK_OF_YEAR_MONDAY: NOT_IMPLEMENTED,
     DIRECTIVES.LOCALE_DATE: NOT_IMPLEMENTED,
     DIRECTIVES.LOCALE_TIME: NOT_IMPLEMENTED,
     DIRECTIVES.YEAR_NO_CENTURY: positive_integer_parser(_len=2, _max=99),
     DIRECTIVES.YEAR: positive_integer_parser(_len=4, _max=9999),
     DIRECTIVES.TIME_ZONE_OFFSET: parse_time_zone_offset,
-    DIRECTIVES.TIME_ZONE: choice_parser(TIME_ZONES),
+    DIRECTIVES.TIME_ZONE: choice_parser(('Z',)),
     DIRECTIVES.PERCENT: lambda s: s.startswith('%') and ('', s[2:]),
 }
 
@@ -178,7 +176,7 @@ def directive_to_struct_time_item(directive, value):
         # We don't have the am/pm context here so can't do any conversion.
         return STRUCT_TIME.TM_HOUR, value
     elif directive == DIRECTIVES.MINUTE:
-        # Return INUTE as TM_MIN
+        # Return MINUTE as TM_MIN
         return STRUCT_TIME.TM_MIN, value
     elif directive == DIRECTIVES.SECOND:
         # Return SECOND as TM_SEC
@@ -195,8 +193,25 @@ def directive_to_struct_time_item(directive, value):
     elif directive == DIRECTIVES.DAY_OF_YEAR:
         # Return DAY_OF_YEAR as TM_YDAY
         return STRUCT_TIME.TM_YDAY, value
+    elif directive == DIRECTIVES.TIME_ZONE:
+        # Take no action for TIME_ZONE.
+        return None
+    elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
+        # Return TIME_ZONE_OFFSET as TM_MIN - to be added to any existing
+        # minute value.
+        return STRUCT_TIME.TM_MIN, value
+    elif directive == DIRECTIVES.AM_PM:
+        # Return AM_PM as TM_HOUR
+        # If value = 'PM' return +12 to update hour value to 24-hour format.
+        return STRUCT_TIME.TM_HOUR, 12 if value == 'PM' else 0
+    elif directive == DIRECTIVES.PERCENT:
+        # Take no action for PERCENT.
+        return None
     else:
-        raise NotImplementedError(directive)
+        raise NotImplementedError(
+            'struct_time conversion not defined for directive: {}'
+            .format(directive)
+        )
 
 def strptime(date_string, format):
     """Attempt to parse the date_string as the specified format and return a
@@ -207,8 +222,6 @@ def strptime(date_string, format):
     # Iterate through the format string, applying parsers and matching literal
     # chars as appropriate.
     struct_time_d = {}
-    utc_offset_minutes = None
-    am_pm = None
     while i < format_len:
         c = format[i]
         # If the character is not the start of a directive, attempt to match a
@@ -231,37 +244,39 @@ def strptime(date_string, format):
             parser = DIRECTIVE_PARSER_MAP[directive]
             # Check whether the parser is yet to be implemented.
             if parser is NOT_IMPLEMENTED:
-                raise NotImplementedError(directive)
+                raise NotImplementedError(
+                    'parser not defined for directive: {}'.format(directive)
+                )
             # Do the parsing.
             result = parser(date_string)
             # Return None on any parsing failure.
             if result is False:
                 return None
             value, date_string = result
-            # Apply the directive value.
-            if directive == DIRECTIVES.TIME_ZONE:
-                if value == 'Z':
-                    # Time is UTC.
-                    utc_offset_minutes = 0
-            elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
-                # Save the offset.
-                utc_offset_minutes = value
-            elif directive == DIRECTIVES.AM_PM:
-                am_pm = value
-            else:
-                # Convert the directive value to a struct_time item.
-                k, v = directive_to_struct_time_item(directive, value)
-                struct_time_d[k] = v
+            # Convert the directive value to a struct_time item.
+            struct_time_item = directive_to_struct_time_item(directive, value)
+            if struct_time_item is not None:
+                k, v = struct_time_item
+                # If the key already exists, accumulate, otherwise set.
+                if k in struct_time_d:
+                    struct_time_d[k] += v
+                else:
+                    struct_time_d[k] = v
         i += 1
 
-    # Update hour value to 24-hour format if am_pm = 'PM'.
-    if am_pm == 'PM':
-        struct_time_d['tm_hour'] += 12
+    # Return None if the date string has not been completely consumed.
+    if len(date_string) > 0:
+        return None
 
-    # Apply any time zone offset to result in UTC.
-    if utc_offset_minutes is not None and utc_offset_minutes != 0:
-        # TODO - do some datetime math.
-        raise NotImplementedError
+    # Return None if a +12 hour AM_PM = 'PM' accumulation overflowed a parsed
+    # HOUR_24 value.
+    if not (0 <= struct_time_d.get(STRUCT_TIME.TM_HOUR, 0) <= 23):
+        return None
+
+    # Check whether accumulated minute value exceeds its max as a result of
+    # accumulating a time zone offset, requiring some calendar day math.
+    if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
+        raise NotImplementedError('todo - calendar math')
 
     # Return a struct_time object.
     return struct_time(*[struct_time_d.get(k, 0) for k in struct_time._fields])
