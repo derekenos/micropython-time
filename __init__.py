@@ -200,7 +200,7 @@ def directive_to_struct_time_item(directive, value):
 
 def strptime(date_string, format):
     """Attempt to parse the date_string as the specified format and return a
-    datetime tuple in the format: TODO, if parsing fails, return None.
+    struct_time tuple, or None if parsing fails.
     """
     i = 0
     format_len = len(format)
