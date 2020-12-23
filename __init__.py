@@ -19,6 +19,24 @@ MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July'
 ABBREVIATED_MONTH_NAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
                            'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
+# January 1, 2000 was a saturday.
+JAN_1_2000_DAY_NUM = 6
+
+ABBREV_MONTH_NUM_DAYS_PAIRS = (
+    ('Jan', 31),
+    ('Feb', 28),
+    ('Mar', 31),
+    ('Apr', 30),
+    ('May', 31),
+    ('Jun', 30),
+    ('Jul', 31),
+    ('Aug', 31),
+    ('Sep', 30),
+    ('Oct', 31),
+    ('Nov', 30),
+    ('Dec', 31),
+)
+
 NOT_IMPLEMENTED = None
 
 class DIRECTIVES:
@@ -72,6 +90,54 @@ struct_time = namedtuple('struct_time', (
 ))
 
 ###############################################################################
+# Date Helpers
+###############################################################################
+
+def date_to_day_of_year(year, month, day):
+    """Return the day of year for the specified date in the range 1 - 366.
+    Note that arguments are expected to be 1-based because 0-based hurts my
+    brain.
+    """
+    if month == 0 or day == 0:
+        raise AssertionError('Please specify 1-based values')
+    # If month is January, just return the day.
+    if month == 1:
+        return day
+    # Accumulate days from all months prior to the specified month.
+    num_days = 0
+    for i in range(1, month):
+        num_days += ABBREV_MONTH_NUM_DAYS_PAIRS[i - 1][1]
+    # Maybe add a leap day.
+    if month > 2 and year % 4 == 0:
+        num_days += 1
+    # Return the sum of day and prior months' days.
+    return num_days + day
+
+def date_to_day_num(year, month, day):
+    """Return the day number for the specified date.
+    Note that arguments are expected to be 1-based because 0-based hurts my
+    brain.
+    """
+    if month == 0 or day == 0:
+        raise AssertionError('Please specify 1-based values')
+    # Calculate the day offset from Jan, 1 in the specified year.
+    num_days = date_to_day_of_year(year, month, day) - 1
+
+    # Calculate the number of days offset from Jan, 1, 2000.
+    year_2k_offset = abs(year - 2000)
+    while year_2k_offset > 0:
+        # Pre-decrement here instead of offsetting year_2k_offset by -1 to
+        # compensate for year 2000 inside this loop.
+        year_2k_offset -= 1
+        # Accumulate the number of days in this year into num_days.
+        num_days += 366 if year_2k_offset % 4 == 0 else 365
+
+    # Add the number of days to the day number for Jan 1, 2000 modulus 7
+    # to get the current day number.
+    return (JAN_1_2000_DAY_NUM + num_days) % 7
+
+
+###############################################################################
 # Parser
 ###############################################################################
 
@@ -92,7 +158,7 @@ def parse_integer(s, _len, _min, _max):
         num_s = s[:_len]
         if all(c.isdigit() for c in num_s):
             num = int(num_s)
-            if 0 <= num <= _max:
+            if _min <= num <= _max:
                 return num, s[_len:]
     return False
 
@@ -112,8 +178,8 @@ def parse_time_zone_offset(s):
 
 choice_parser = lambda choices: lambda s: match_choice(s, choices)
 
-positive_integer_parser = \
-    lambda _len, _max: lambda s: parse_integer(s, _len, _min=0, _max=_max)
+positive_integer_parser = lambda _len, _max, _min=0: lambda s: parse_integer(
+    s, _len, _min=_min, _max=_max)
 
 DIRECTIVE_PARSER_MAP = {
     DIRECTIVES.ABBREV_WEEKDAY_NAME: choice_parser(ABBREVIATED_WEEKDAY_NAMES),
@@ -123,7 +189,7 @@ DIRECTIVE_PARSER_MAP = {
     DIRECTIVES.LOCALE_DATETIME: NOT_IMPLEMENTED,
     DIRECTIVES.DAY_OF_MONTH: positive_integer_parser(_len=2, _max=31),
     DIRECTIVES.HOUR_24: positive_integer_parser(_len=2, _max=23),
-    DIRECTIVES.HOUR_12: positive_integer_parser(_len=2, _max=12),
+    DIRECTIVES.HOUR_12: positive_integer_parser(_len=2, _min=1, _max=12),
     DIRECTIVES.DAY_OF_YEAR: positive_integer_parser(_len=3, _max=366),
     DIRECTIVES.MONTH: positive_integer_parser(_len=2, _max=12),
     DIRECTIVES.MINUTE: positive_integer_parser(_len=2, _max=59),

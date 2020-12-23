@@ -1,5 +1,8 @@
 
 from __init__ import (
+    JAN_1_2000_DAY_NUM,
+    date_to_day_of_year,
+    date_to_day_num,
     strptime,
     struct_time,
 )
@@ -11,6 +14,53 @@ from testy import (
     assertRaises,
     cli,
 )
+
+###############################################################################
+# Test date_to_day_of_year()
+###############################################################################
+
+def test_date_to_day_of_year_jan_1_2000():
+    assertEqual(
+        date_to_day_of_year(2000, 1, 1),
+        1
+    )
+
+def test_date_to_day_of_year():
+    assertEqual(
+        date_to_day_of_year(2020, 12, 23),
+        358
+    )
+
+###############################################################################
+# Test date_to_day_num()
+###############################################################################
+
+def test_date_to_day_num_jan_1_2000_thru_2009():
+    for year, day_num in (
+            (2000, JAN_1_2000_DAY_NUM),
+            (2001, (JAN_1_2000_DAY_NUM + 366) % 7),
+            (2002, (JAN_1_2000_DAY_NUM + 366 + 365) % 7),
+            (2003, (JAN_1_2000_DAY_NUM + 366 + 365 * 2) % 7),
+            (2004, (JAN_1_2000_DAY_NUM + 366 + 365 * 3) % 7),
+            (2005, (JAN_1_2000_DAY_NUM + 366 * 2 + 365 * 3) % 7),
+            (2006, (JAN_1_2000_DAY_NUM + 366 * 2 + 365 * 4) % 7),
+            (2007, (JAN_1_2000_DAY_NUM + 366 * 2 + 365 * 5) % 7),
+            (2008, (JAN_1_2000_DAY_NUM + 366 * 2 + 365 * 6) % 7),
+            (2009, (JAN_1_2000_DAY_NUM + 366 * 3 + 365 * 6) % 7),
+        ):
+        assertEqual(date_to_day_num(year, 1, 1), day_num)
+
+def test_date_to_day_num_jan_1_2001():
+    assertEqual(
+        date_to_day_num(2001, 1, 1),
+        (JAN_1_2000_DAY_NUM + 366) % 7
+    )
+
+def test_date_to_day_num():
+    assertEqual(
+        date_to_day_num(2020, 12, 23),
+        3
+    )
 
 ###############################################################################
 # Test strptime()
@@ -126,13 +176,13 @@ def test_hour_24_directive():
 
 def test_hour_12_directive():
     # Test valid values.
-    for i in range(13):
+    for i in range(1, 13):
         assertEqual(
             strptime(f'{i:02}', '%I'),
             struct_time(0, 0, 0, i, 0, 0, 0, 0)
         )
     # Test an invalid value.
-    assertNone(strptime('13', '%I'))
+    assertNone(strptime('00', '%I'))
 
 def test_day_of_year_directive():
     # Test valid values.
