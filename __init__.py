@@ -357,5 +357,14 @@ def strptime(date_string, format):
     if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
         raise NotImplementedError('todo - calendar math')
 
+    # Set day of week and year.
+    year = struct_time_d.get(STRUCT_TIME.TM_YEAR)
+    month = struct_time_d.get(STRUCT_TIME.TM_MON)
+    day = struct_time_d.get(STRUCT_TIME.TM_MDAY)
+    if (year is not None and month is not None and day is not None):
+        struct_time_d[STRUCT_TIME.TM_WDAY] = date_to_day_num(year, month, day)
+        struct_time_d[STRUCT_TIME.TM_YDAY] = date_to_day_of_year(
+            year, month, day)
+
     # Return a struct_time object.
     return struct_time(*[struct_time_d.get(k, 0) for k in struct_time._fields])
