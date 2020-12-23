@@ -19,7 +19,7 @@ MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July'
 ABBREVIATED_MONTH_NAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
                            'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
-TIMEZONES = ('', 'Z')
+TIME_ZONES = ('', 'Z')
 
 NOT_IMPLEMENTED = None
 
@@ -89,13 +89,27 @@ def match_choice(s, choices):
 def parse_integer(s, _len, _min, _max):
     # Attempt to parse an integer of specified length and range and return a
     # tuple in the format: ( <number>, <rest-of-s> ) where <rest-of-s> is
-    # s[_len:], or return False is not match is found.
+    # s[_len:], or return False if no match is found.
     if len(s) >= _len:
         num_s = s[:_len]
         if all(c.isdigit() for c in num_s):
             num = int(num_s)
             if 0 <= num <= _max:
                 return num, s[_len:]
+    return False
+
+def parse_time_zone_offset(s):
+    # Attempt to parse a positive or negative time zone offset and return a
+    # tuple in the format: ( <offset-minutes>, <rest-of-s> ), or return False
+    # if no match is found.
+    if (len(s) == 6
+        and (s[0] == '-' or s[0] == '+')
+        and s[1].isdigit()
+        and s[2].isdigit()
+        and s[3] == ':'
+        and s[4].isdigit()
+        and s[5].isdigit()):
+        return int(s[:3]) * 60 + int(s[4:6]), s[6:]
     return False
 
 choice_parser = lambda choices: lambda s: match_choice(s, choices)
@@ -124,8 +138,8 @@ DIRECTIVE_PARSER_MAP = {
     DIRECTIVES.LOCALE_TIME: NOT_IMPLEMENTED,
     DIRECTIVES.YEAR_NO_CENTURY: positive_integer_parser(_len=2, _max=99),
     DIRECTIVES.YEAR: positive_integer_parser(_len=4, _max=9999),
-    DIRECTIVES.TIME_ZONE_OFFSET: NOT_IMPLEMENTED,
-    DIRECTIVES.TIME_ZONE: choice_parser(TIMEZONES),
+    DIRECTIVES.TIME_ZONE_OFFSET: parse_time_zone_offset,
+    DIRECTIVES.TIME_ZONE: choice_parser(TIME_ZONES),
     DIRECTIVES.PERCENT: lambda s: s.startswith('%') and ('', s[2:]),
 }
 
@@ -181,9 +195,6 @@ def directive_to_struct_time_item(directive, value):
     elif directive == DIRECTIVES.DAY_OF_YEAR:
         # Return DAY_OF_YEAR as TM_YDAY
         return STRUCT_TIME.TM_YDAY, value
-    elif directive == DIRECTIVES.TIME_ZONE:
-        # TODO - maybe do something with time zone?
-        return None
     else:
         raise NotImplementedError(directive)
 
@@ -196,6 +207,7 @@ def strptime(date_string, format):
     # Iterate through the format string, applying parsers and matching literal
     # chars as appropriate.
     struct_time_d = {}
+    utc_offset_minutes = None
     while i < format_len:
         c = format[i]
         # If the character is not the start of a directive, attempt to match a
@@ -225,11 +237,24 @@ def strptime(date_string, format):
             if result is False:
                 return None
             value, date_string = result
-            # Convert the directive match to a struct_time item.
-            kv = directive_to_struct_time_item(directive, value)
-            if kv is not None:
-                struct_time_d[kv[0]] = kv[1]
+            # Apply the directive value.
+            if directive == DIRECTIVES.TIME_ZONE:
+                if value == 'Z':
+                    # Time is UTC.
+                    utc_offset_minutes = 0
+            elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
+                # Save the offset.
+                utc_offset_minutes = value
+            else:
+                # Convert the directive value to a struct_time item.
+                k, v = directive_to_struct_time_item(directive, value)
+                struct_time_d[k] = v
         i += 1
+
+    # Apply any time zone offset to result in UTC.
+    if utc_offset_minutes is not None and utc_offset_minutes != 0:
+        # TODO - do some datetime math.
+        raise NotImplementedError
 
     # Return a struct_time object.
     return struct_time(*[struct_time_d.get(k, 0) for k in struct_time._fields])

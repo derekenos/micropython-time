@@ -5,6 +5,7 @@ from __init__ import (
 )
 
 from testy import (
+    Skip,
     assertEqual,
     cli,
 )
@@ -19,6 +20,13 @@ def test_iso8601_date():
 def test_iso8601_datetime_utc_offset():
     assertEqual(
         strptime('2020-12-23T01:01:20+00:00', '%Y-%m-%dT%H:%M:%S%z'),
+        struct_time(2020, 12, 23, 1, 1, 20, 0, 0)
+    )
+
+def test_iso8601_datetime_with_nonzero_utc_offset():
+    raise Skip
+    assertEqual(
+        strptime('2020-12-23T01:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
         struct_time(2020, 12, 23, 1, 1, 20, 0, 0)
     )
 
