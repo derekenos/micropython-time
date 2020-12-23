@@ -129,10 +129,6 @@ def date_to_day_num(year, month, day):
     # Calculate the day offset from Jan, 1 in the specified year.
     day_num = date_to_day_of_year(year, month, day)
 
-    # Handle the year 2000.
-    if year == 2000:
-        return (JAN_1_2000_DAY_NUM + day_num - 1) % 7
-
     is_pre_2k = year < 2000
     if is_pre_2k:
         # Calculate the number of days from the end of the year.
