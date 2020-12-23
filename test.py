@@ -90,6 +90,7 @@ def test_date_to_day_num_jan_1_2000_thru_2009():
 
 def test_date_to_day_num_spot_check():
     for year, month, day, day_num in (
+            (1601, 1, 1, 1),
             (1800, 1, 1, 3),
             (1800, 12, 31, 3),
             (1801, 1, 1, 4),
@@ -127,9 +128,6 @@ def test_date_to_day_num_spot_check():
 
         ):
         assertEqual(date_to_day_num(year, month, day), day_num)
-
-def test_whats_wrong_with_1601():
-    assertEqual(date_to_day_num(1601, 1, 1), 4)
 
 def test_date_to_day_num_jan_1_2001():
     assertEqual(
