@@ -452,18 +452,16 @@ def strptime(date_string, format):
         if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
             # Pass _struct_time along with an empty time_delta to
             # add_struct_time_time_delta() to take advantage of its
-            # over/underflow logic.
+            # over/underflow logic. Note that add_struct_time_time_delta() will
+            # take care of setting the final day of week / year.
             _struct_time = add_struct_time_time_delta(
                 _struct_time, time_delta())
-
-        # Get the updated date and calculate the final day of week / year.
-        year = _struct_time.tm_year
-        month = _struct_time.tm_mon
-        day = _struct_time.tm_mday
-        _struct_time = struct_time_replace(
-            _struct_time,
-            tm_wday=date_to_day_of_week(year, month, day),
-            tm_yday=date_to_day_of_year(year, month, day)
-        )
+        else:
+            # Calculate the final day of week / year.
+            _struct_time = struct_time_replace(
+                _struct_time,
+                tm_wday=date_to_day_of_week(year, month, day),
+                tm_yday=date_to_day_of_year(year, month, day)
+            )
 
     return _struct_time
