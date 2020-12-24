@@ -158,6 +158,13 @@ def date_to_day_of_week(year, month, day):
 # struct_time Helpers
 ###############################################################################
 
+def struct_time_replace(_struct_time, **kwargs):
+    if any(k not in STRUCT_TIME_FIELDS for k in kwargs):
+        raise AssertionError
+    return struct_time(
+        *[kwargs.get(k, getattr(_struct_time, k)) for k in STRUCT_TIME_FIELDS]
+    )
+
 def add_struct_time_time_delta(_struct_time, _time_delta):
     # Return the result of adding a time_delta to a struct_time.
     # Check that time_delta doesn't specify tm_wday or tm_yday.
@@ -424,11 +431,6 @@ def strptime(date_string, format):
     if not (0 <= struct_time_d.get(STRUCT_TIME.TM_HOUR, 0) <= 23):
         return None
 
-    # Check whether accumulated minute value exceeds its max as a result of
-    # accumulating a time zone offset, requiring some calendar day math.
-    if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
-        raise NotImplementedError('todo - calendar math')
-
     # Attempt to get year/month/day for date ops.
     year = struct_time_d.get(STRUCT_TIME.TM_YEAR)
     month = struct_time_d.get(STRUCT_TIME.TM_MON)
@@ -439,12 +441,27 @@ def strptime(date_string, format):
     if has_date and not is_valid_month_day(year, month, day):
         return None
 
+    # Create an initial struct_time object.
+    _struct_time = struct_time(
+        *[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS]
+    )
+
     # Set day of week and year.
     if has_date:
-        struct_time_d[STRUCT_TIME.TM_WDAY] = \
-            date_to_day_of_week(year, month, day)
-        struct_time_d[STRUCT_TIME.TM_YDAY] = \
-            date_to_day_of_year(year, month, day)
+        # Check whether accumulated minute value exceeds its max as a result of
+        # accumulating a time zone offset, requiring some calendar day math.
+        if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
+            # Pass _struct_time along with an empty time_delta to
+            # add_struct_time_time_delta() to take advantage of its
+            # over/underflow logic.
+            _struct_time = add_struct_time_time_delta(
+                _struct_time, time_delta())
 
-    # Return a struct_time object.
-    return struct_time(*[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS])
+        # Set the final day of week / year.
+        _struct_time = struct_time_replace(
+            _struct_time,
+            tm_wday=date_to_day_of_week(year, month, day),
+            tm_yday=date_to_day_of_year(year, month, day)
+        )
+
+    return _struct_time
