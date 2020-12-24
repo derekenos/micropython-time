@@ -100,13 +100,15 @@ def is_leap_year(year):
 
 days_in_year = lambda year: 366 if is_leap_year(year) else 365
 
+def is_valid_month_day(year, month, day):
+    # Handle February during a leap year.
+    if month == 2 and is_leap_year(year):
+        return day <= 29
+    return day <= ABBREV_MONTH_NUM_DAYS_PAIRS[month - 1][1]
+
 def date_to_day_of_year(year, month, day):
     """Return the day of year for the specified date in the range 1 - 366.
-    Note that arguments are expected to be 1-based because 0-based hurts my
-    brain.
     """
-    if month == 0 or day == 0:
-        raise AssertionError('Please specify 1-based values')
     # If month is January, just return the day.
     if month == 1:
         return day
@@ -122,12 +124,7 @@ def date_to_day_of_year(year, month, day):
 
 def date_to_day_num(year, month, day):
     """Return the day number for the specified date.
-    Note that arguments are expected to be 1-based because 0-based hurts my
-    brain.
     """
-    if month == 0 or day == 0:
-        raise AssertionError('Please specify 1-based values')
-
     # Calculate the day offset from Jan, 1 in the specified year.
     day_num = date_to_day_of_year(year, month, day)
 
@@ -253,9 +250,8 @@ def directive_to_struct_time_item(directive, value):
         # Return HOUR_24 as TM_HOUR
         return STRUCT_TIME.TM_HOUR, value
     elif directive == DIRECTIVES.HOUR_12:
-        # Return HOUR_12 as TM_HOUR
-        # We don't have the am/pm context here so can't do any conversion.
-        return STRUCT_TIME.TM_HOUR, value
+        # Return HOUR_12 as 0-based TM_HOUR
+        return STRUCT_TIME.TM_HOUR, 0 if value == 12 else value
     elif directive == DIRECTIVES.MINUTE:
         # Return MINUTE as TM_MIN
         return STRUCT_TIME.TM_MIN, value
@@ -359,14 +355,21 @@ def strptime(date_string, format):
     if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
         raise NotImplementedError('todo - calendar math')
 
-    # Set day of week and year.
+    # Attempt to get year/month/day for date ops.
     year = struct_time_d.get(STRUCT_TIME.TM_YEAR)
     month = struct_time_d.get(STRUCT_TIME.TM_MON)
     day = struct_time_d.get(STRUCT_TIME.TM_MDAY)
-    if (year is not None and month is not None and day is not None):
+    has_date = year is not None and month is not None and day is not None
+
+    # Return None if the specified day is not valid for the month.
+    if has_date and not is_valid_month_day(year, month, day):
+        return None
+
+    # Set day of week and year.
+    if has_date:
         struct_time_d[STRUCT_TIME.TM_WDAY] = date_to_day_num(year, month, day)
-        struct_time_d[STRUCT_TIME.TM_YDAY] = date_to_day_of_year(
-            year, month, day)
+        struct_time_d[STRUCT_TIME.TM_YDAY] = \
+            date_to_day_of_year(year, month, day)
 
     # Return a struct_time object.
     return struct_time(*[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS])

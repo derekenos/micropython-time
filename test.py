@@ -246,7 +246,7 @@ def test_hour_12_directive():
     for i in range(1, 13):
         assertEqual(
             strptime(f'{i:02}', '%I'),
-            struct_time(0, 0, 0, i, 0, 0, 0, 0)
+            struct_time(0, 0, 0, 0 if i == 12 else i, 0, 0, 0, 0)
         )
     # Test an invalid value.
     assertNone(strptime('00', '%I'))
@@ -424,21 +424,47 @@ def test_am_time():
         struct_time(0, 0, 0, 8, 10, 0, 0, 0)
     )
 
-def test_pm_time():
+def test_pm_time_with_hour_12():
+    assertEqual(
+        strptime('08:10PM', '%I:%M%p'),
+        struct_time(0, 0, 0, 20, 10, 0, 0, 0)
+    )
+
+def test_noon_pm_time_with_hour_12():
+    assertEqual(
+        strptime('12:00PM', '%I:%M%p'),
+        struct_time(0, 0, 0, 12, 0, 0, 0, 0)
+    )
+
+def test_last_day_of_feb_during_leap_year():
+    assertEqual(
+        strptime('2000-02-29', '%Y-%m-%d'),
+        struct_time(2000, 2, 29, 0, 0, 0, 2, 60)
+    )
+
+
+# Test invalid value combinations.
+
+def test_invalid_day_of_month():
+    # Test the day after each month's last day ina common year.
+    for month in range(1, 13):
+        day = ABBREV_MONTH_NUM_DAYS_PAIRS[month - 1][1] + 1
+        assertNone(strptime(f'2001-{month:02}-{day:02}', '%Y-%m-%d'))
+
+    # Test day after last day of Feb during a leap year.
+    assertNone(strptime('2000-02-30', '%Y-%m-%d'))
+
+
+# Test illogical directive combinations.
+
+def test_valid_hour_24_specified_as_pm():
     assertEqual(
         strptime('08:10PM', '%H:%M%p'),
         struct_time(0, 0, 0, 20, 10, 0, 0, 0)
     )
 
-def test_pm_time_overflow():
-    assertNone(strptime('12:10PM', '%H:%M%p'))
-
-
-# Test things that are not yet implemented.
-
-def test_invalid_day_of_month():
-    # i.e. February 30
-    raise Skip
+def test_invalid_hour_24_specified_as_pm():
+    assertNone(strptime('20:10PM', '%H:%M%p'))
 
 
 if __name__ == '__main__':
