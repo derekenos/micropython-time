@@ -91,20 +91,26 @@ STRUCT_TIME_FIELDS = (
 
 struct_time = namedtuple('struct_time', STRUCT_TIME_FIELDS)
 
+def time_delta(**kwargs):
+    if any(k not in STRUCT_TIME_FIELDS for k in kwargs):
+        raise AssertionError
+    return struct_time(*[kwargs.get(k, 0) for k in STRUCT_TIME_FIELDS])
+
 ###############################################################################
 # Date Helpers
 ###############################################################################
 
-def is_leap_year(year):
-    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+is_leap_year = lambda year: \
+    year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+days_in_month = lambda year, month: (
+    29 if month == 2 and is_leap_year(year)
+    else ABBREV_MONTH_NUM_DAYS_PAIRS[month - 1][1]
+)
 
 days_in_year = lambda year: 366 if is_leap_year(year) else 365
 
-def is_valid_month_day(year, month, day):
-    # Handle February during a leap year.
-    if month == 2 and is_leap_year(year):
-        return day <= 29
-    return day <= ABBREV_MONTH_NUM_DAYS_PAIRS[month - 1][1]
+is_valid_month_day = lambda year, month, day: day <= days_in_month(year, month)
 
 def date_to_day_of_year(year, month, day):
     """Return the day of year for the specified date in the range 1 - 366.
@@ -122,7 +128,7 @@ def date_to_day_of_year(year, month, day):
     # Return the sum of day and prior months' days.
     return num_days + day
 
-def date_to_day_num(year, month, day):
+def date_to_day_of_week(year, month, day):
     """Return the day number for the specified date.
     """
     # Calculate the day offset from Jan, 1 in the specified year.
@@ -148,6 +154,81 @@ def date_to_day_num(year, month, day):
 
     return (JAN_1_2000_DAY_NUM + num_days) % 7
 
+###############################################################################
+# struct_time Helpers
+###############################################################################
+
+def struct_time_replace(_struct_time, **kwargs):
+    if any(k not in STRUCT_TIME_FIELDS for k in kwargs):
+        raise AssertionError
+    return struct_time(
+        *[kwargs.get(k, getattr(_struct_time, k)) for k in STRUCT_TIME_FIELDS]
+    )
+
+def add_struct_time_time_delta(_struct_time, _time_delta):
+    # Return the result of adding a time_delta to a struct_time.
+    # Check that time_delta doesn't specify tm_wday or tm_yday.
+    if (_time_delta.tm_wday != 0 or _time_delta.tm_yday != 0):
+        raise NotImplementedError
+    # Sum seconds.
+    seconds = _struct_time.tm_sec + _time_delta.tm_sec
+    minutes = 0
+    if seconds < 0:
+        minutes -= int(-seconds / 60) + 1
+        seconds = seconds % 60
+    elif seconds > 59:
+        minutes += int(seconds / 60)
+        seconds = seconds % 60
+    # Sum minutes.
+    minutes += _struct_time.tm_min + _time_delta.tm_min
+    hours = 0
+    if minutes < 0:
+        hours -= int(-minutes / 60) + 1
+        minutes = minutes % 60
+    elif minutes > 59:
+        hours += int(minutes / 60)
+        minutes = minutes % 60
+    # Sum hours.
+    hours += _struct_time.tm_hour + _time_delta.tm_hour
+    day = 0
+    if hours < 0:
+        day -= int(-hours / 24) + 1
+        hours = hours % 24
+    elif hours > 23:
+        day += int(hours / 24)
+        hours = hours % 24
+    # Sum days.
+    day += _struct_time.tm_mday + _time_delta.tm_mday
+    month = 0
+    if day < 1:
+        month -= int(-day / 32) + 1
+        day = 31 - (-day % 32)
+    elif day > 31:
+        month += int(day / 32)
+        day = day % 32
+    # Sum months.
+    month += _struct_time.tm_mon + _time_delta.tm_mon
+    year = 0
+    if month < 1:
+        year -= int(month / 13) + 1
+        month = 12 - (-month % 13)
+    elif month > 12:
+        year += int(month / 13)
+        month = month % 13
+    # Sum years.
+    year += _struct_time.tm_year + _time_delta.tm_year
+    # Increment month if day exceeds max.
+    last_day = days_in_month(year, month)
+    if day > last_day:
+        month += int(day % last_day + 1)
+        day = day % last_day + 1
+    if month > 12:
+        year += int(month / 13)
+        month = month % 13
+    # Calc day of week / year and return struct_time.
+    dyear = date_to_day_of_year(year, month, day)
+    dweek = date_to_day_of_week(year, month, day)
+    return struct_time(year, month, day, hours, minutes, seconds, dweek, dyear)
 
 ###############################################################################
 # Parser
@@ -274,9 +355,9 @@ def directive_to_struct_time_item(directive, value):
         # Take no action for TIME_ZONE.
         return None
     elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
-        # Return TIME_ZONE_OFFSET as TM_MIN - to be added to any existing
-        # minute value.
-        return STRUCT_TIME.TM_MIN, value
+        # Return TIME_ZONE_OFFSET as TM_MIN - to be subtracted from any
+        # existing minute value to arrive at UTC.
+        return STRUCT_TIME.TM_MIN, -value
     elif directive == DIRECTIVES.AM_PM:
         # Return AM_PM as TM_HOUR
         # If value = 'PM' return +12 to update hour value to 24-hour format.
@@ -350,11 +431,6 @@ def strptime(date_string, format):
     if not (0 <= struct_time_d.get(STRUCT_TIME.TM_HOUR, 0) <= 23):
         return None
 
-    # Check whether accumulated minute value exceeds its max as a result of
-    # accumulating a time zone offset, requiring some calendar day math.
-    if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
-        raise NotImplementedError('todo - calendar math')
-
     # Attempt to get year/month/day for date ops.
     year = struct_time_d.get(STRUCT_TIME.TM_YEAR)
     month = struct_time_d.get(STRUCT_TIME.TM_MON)
@@ -365,11 +441,29 @@ def strptime(date_string, format):
     if has_date and not is_valid_month_day(year, month, day):
         return None
 
-    # Set day of week and year.
-    if has_date:
-        struct_time_d[STRUCT_TIME.TM_WDAY] = date_to_day_num(year, month, day)
-        struct_time_d[STRUCT_TIME.TM_YDAY] = \
-            date_to_day_of_year(year, month, day)
+    # Create an initial struct_time object.
+    _struct_time = struct_time(
+        *[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS]
+    )
 
-    # Return a struct_time object.
-    return struct_time(*[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS])
+    if has_date:
+        # Check whether accumulated minute value exceeds its max as a result of
+        # accumulating a time zone offset, requiring some calendar day math.
+        if not 0 <= struct_time_d.get(STRUCT_TIME.TM_MIN, 0) <= 59:
+            # Pass _struct_time along with an empty time_delta to
+            # add_struct_time_time_delta() to take advantage of its
+            # over/underflow logic.
+            _struct_time = add_struct_time_time_delta(
+                _struct_time, time_delta())
+
+        # Get the updated date and calculate the final day of week / year.
+        year = _struct_time.tm_year
+        month = _struct_time.tm_mon
+        day = _struct_time.tm_mday
+        _struct_time = struct_time_replace(
+            _struct_time,
+            tm_wday=date_to_day_of_week(year, month, day),
+            tm_yday=date_to_day_of_year(year, month, day)
+        )
+
+    return _struct_time
