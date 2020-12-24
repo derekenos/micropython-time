@@ -74,11 +74,7 @@ class STRUCT_TIME:
     TM_WDAY = 'tm_wday'
     TM_YDAY = 'tm_yday'
 
-###############################################################################
-# Types
-###############################################################################
-
-struct_time = namedtuple('struct_time', (
+STRUCT_TIME_FIELDS = (
     'tm_year',
     'tm_mon',
     'tm_mday',
@@ -87,7 +83,13 @@ struct_time = namedtuple('struct_time', (
     'tm_sec',
     'tm_wday',
     'tm_yday'
-))
+)
+
+###############################################################################
+# Types
+###############################################################################
+
+struct_time = namedtuple('struct_time', STRUCT_TIME_FIELDS)
 
 ###############################################################################
 # Date Helpers
@@ -367,4 +369,4 @@ def strptime(date_string, format):
             year, month, day)
 
     # Return a struct_time object.
-    return struct_time(*[struct_time_d.get(k, 0) for k in struct_time._fields])
+    return struct_time(*[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS])
