@@ -129,18 +129,6 @@ def test_date_to_day_num_spot_check():
         ):
         assertEqual(date_to_day_num(year, month, day), day_num)
 
-def test_date_to_day_num_jan_1_2001():
-    assertEqual(
-        date_to_day_num(2001, 1, 1),
-        (JAN_1_2000_DAY_NUM + 366) % 7
-    )
-
-def test_date_to_day_num():
-    assertEqual(
-        date_to_day_num(2020, 12, 23),
-        3
-    )
-
 ###############################################################################
 # Test strptime()
 ###############################################################################
