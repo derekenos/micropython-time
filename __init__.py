@@ -174,7 +174,7 @@ def add_struct_time_time_delta(_struct_time, _time_delta):
     seconds = _struct_time.tm_sec + _time_delta.tm_sec
     minutes = 0
     if seconds < 0:
-        minutes -= int(seconds / 60) + 1
+        minutes -= int(-seconds / 60) + 1
         seconds = seconds % 60
     elif seconds > 59:
         minutes += int(seconds / 60)
@@ -183,7 +183,7 @@ def add_struct_time_time_delta(_struct_time, _time_delta):
     minutes += _struct_time.tm_min + _time_delta.tm_min
     hours = 0
     if minutes < 0:
-        hours -= int(minutes / 60) + 1
+        hours -= int(-minutes / 60) + 1
         minutes = minutes % 60
     elif minutes > 59:
         hours += int(minutes / 60)
@@ -192,7 +192,7 @@ def add_struct_time_time_delta(_struct_time, _time_delta):
     hours += _struct_time.tm_hour + _time_delta.tm_hour
     day = 0
     if hours < 0:
-        day -= int(hours / 24) + 1
+        day -= int(-hours / 24) + 1
         hours = hours % 24
     elif hours > 23:
         day += int(hours / 24)
@@ -201,7 +201,7 @@ def add_struct_time_time_delta(_struct_time, _time_delta):
     day += _struct_time.tm_mday + _time_delta.tm_mday
     month = 0
     if day < 1:
-        month -= int(day / 32) + 1
+        month -= int(-day / 32) + 1
         day = 31 - (-day % 32)
     elif day > 31:
         month += int(day / 32)
@@ -355,9 +355,9 @@ def directive_to_struct_time_item(directive, value):
         # Take no action for TIME_ZONE.
         return None
     elif directive == DIRECTIVES.TIME_ZONE_OFFSET:
-        # Return TIME_ZONE_OFFSET as TM_MIN - to be added to any existing
-        # minute value.
-        return STRUCT_TIME.TM_MIN, value
+        # Return TIME_ZONE_OFFSET as TM_MIN - to be subtracted from any
+        # existing minute value to arrive at UTC.
+        return STRUCT_TIME.TM_MIN, -value
     elif directive == DIRECTIVES.AM_PM:
         # Return AM_PM as TM_HOUR
         # If value = 'PM' return +12 to update hour value to 24-hour format.
@@ -446,7 +446,6 @@ def strptime(date_string, format):
         *[struct_time_d.get(k, 0) for k in STRUCT_TIME_FIELDS]
     )
 
-    # Set day of week and year.
     if has_date:
         # Check whether accumulated minute value exceeds its max as a result of
         # accumulating a time zone offset, requiring some calendar day math.
@@ -457,7 +456,10 @@ def strptime(date_string, format):
             _struct_time = add_struct_time_time_delta(
                 _struct_time, time_delta())
 
-        # Set the final day of week / year.
+        # Get the updated date and calculate the final day of week / year.
+        year = _struct_time.tm_year
+        month = _struct_time.tm_mon
+        day = _struct_time.tm_mday
         _struct_time = struct_time_replace(
             _struct_time,
             tm_wday=date_to_day_of_week(year, month, day),

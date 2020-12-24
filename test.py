@@ -476,9 +476,9 @@ def test_time_zone_offset_directive():
     for offset_str, offset_mins in (
             ('+00:00', 0),
             ('-00:00', 0),
-            ('+01:00', 60),
-            ('-01:00', -60),
-            ('+12:00', 720),
+            ('+01:00', -60),
+            ('-01:00', 60),
+            ('+12:00', -720),
         ):
         assertEqual(
             strptime(offset_str, '%z'),
@@ -520,10 +520,21 @@ def test_iso8601_datetime_utc_offset():
     )
 
 def test_iso8601_datetime_with_nonzero_utc_offset():
-    raise Skip
     assertEqual(
-        strptime('2020-12-23T01:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
-        struct_time(2020, 12, 23, 1, 1, 20, 3, 358)
+        strptime('2020-12-23T05:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
+        struct_time(2020, 12, 23, 0, 1, 20, 3, 358)
+    )
+
+def test_iso8601_datetime_with_nonzero_utc_offset_day_undeflow():
+    assertEqual(
+        strptime('2020-12-23T04:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
+        struct_time(2020, 12, 22, 23, 1, 20, 2, 357)
+    )
+
+def test_iso8601_datetime_with_nonzero_utc_offset_day_overflow():
+    assertEqual(
+        strptime('2020-12-22T23:01:20-05:00', '%Y-%m-%dT%H:%M:%S%z'),
+        struct_time(2020, 12, 23, 4, 1, 20, 3, 358)
     )
 
 def test_iso8601_datetime_utc_timezone():
