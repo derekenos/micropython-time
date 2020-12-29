@@ -1,7 +1,10 @@
 
+import time
+
 from __init__ import (
     ABBREV_MONTH_NUM_DAYS_PAIRS,
     JAN_1_2000_DAY_NUM,
+    STRUCT_TIME_FIELDS,
     date_to_day_of_year,
     date_to_day_of_week,
     is_leap_year,
@@ -92,41 +95,41 @@ def test_date_to_day_of_week_jan_1_2000_thru_2009():
 
 def test_date_to_day_of_week_spot_check():
     for year, month, day, day_num in (
-            (1601, 1, 1, 1),
-            (1800, 1, 1, 3),
-            (1800, 12, 31, 3),
-            (1801, 1, 1, 4),
-            (1801, 12, 31, 4),
-            (1834, 1, 1, 3),
-            (1834, 12, 31, 3),
-            (1900, 1, 1, 1),
-            (1900, 6, 15, 5),
-            (1932, 1, 1, 5),
-            (1932, 6, 15, 3),
-            (1937, 1, 1, 5),
-            (1937, 6, 15, 2),
-            (1954, 1, 1, 5),
-            (1954, 6, 15, 2),
-            (1972, 1, 1, 6),
-            (1972, 6, 15, 4),
-            (1980, 1, 1, 2),
-            (1980, 6, 15, 0),
-            (1991, 1, 1, 2),
-            (1991, 6, 15, 6),
-            (2000, 1, 1, 6),
-            (2000, 6, 15, 4),
-            (2005, 1, 1, 6),
-            (2005, 6, 15, 3),
-            (2005, 12, 31, 6),
-            (2006, 1, 1, 0),
-            (2006, 6, 15, 4),
-            (2006, 12, 31, 0),
-            (2029, 1, 1, 1),
-            (2029, 6, 15, 5),
-            (2029, 12, 31, 1),
-            (2121, 1, 1, 3),
-            (2121, 6, 15, 0),
-            (2121, 12, 31, 3),
+            (1601, 1, 1, 0),
+            (1800, 1, 1, 2),
+            (1800, 12, 31, 2),
+            (1801, 1, 1, 3),
+            (1801, 12, 31, 3),
+            (1834, 1, 1, 2),
+            (1834, 12, 31, 2),
+            (1900, 1, 1, 0),
+            (1900, 6, 15, 4),
+            (1932, 1, 1, 4),
+            (1932, 6, 15, 2),
+            (1937, 1, 1, 4),
+            (1937, 6, 15, 1),
+            (1954, 1, 1, 4),
+            (1954, 6, 15, 1),
+            (1972, 1, 1, 5),
+            (1972, 6, 15, 3),
+            (1980, 1, 1, 1),
+            (1980, 6, 15, 6),
+            (1991, 1, 1, 1),
+            (1991, 6, 15, 5),
+            (2000, 1, 1, 5),
+            (2000, 6, 15, 3),
+            (2005, 1, 1, 5),
+            (2005, 6, 15, 2),
+            (2005, 12, 31, 5),
+            (2006, 1, 1, 6),
+            (2006, 6, 15, 3),
+            (2006, 12, 31, 6),
+            (2029, 1, 1, 0),
+            (2029, 6, 15, 4),
+            (2029, 12, 31, 0),
+            (2121, 1, 1, 2),
+            (2121, 6, 15, 6),
+            (2121, 12, 31, 2),
 
         ):
         assertEqual(date_to_day_of_week(year, month, day), day_num)
@@ -143,101 +146,101 @@ _assertStructTimeDelta = lambda _struct_time, _time_delta, expected: \
 
 def test_add_struct_time_time_delta_zero_delta():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(),
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1)
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1)
     )
 
 def test_add_struct_time_time_delta_second():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 1, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 1, 5, 1),
         time_delta(tm_sec=1),
-        struct_time(2000, 1, 1, 0, 0, 2, 6, 1)
+        struct_time(2000, 1, 1, 0, 0, 2, 5, 1)
     )
 
 def test_add_struct_time_time_delta_minute():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 1, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 1, 0, 5, 1),
         time_delta(tm_min=1),
-        struct_time(2000, 1, 1, 0, 2, 0, 6, 1)
+        struct_time(2000, 1, 1, 0, 2, 0, 5, 1)
     )
 
 def test_add_struct_time_time_delta_hour():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 1, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 1, 0, 0, 5, 1),
         time_delta(tm_hour=1),
-        struct_time(2000, 1, 1, 2, 0, 0, 6, 1)
+        struct_time(2000, 1, 1, 2, 0, 0, 5, 1)
     )
 
 def test_add_struct_time_time_delta_day():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(tm_mday=1),
-        struct_time(2000, 1, 2, 0, 0, 0, 0, 2)
+        struct_time(2000, 1, 2, 0, 0, 0, 6, 2)
     )
 
 def test_add_struct_time_time_delta_second_overflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 1, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 1, 5, 1),
         time_delta(tm_sec=59),
-        struct_time(2000, 1, 1, 0, 1, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 1, 0, 5, 1),
     )
 
 def test_add_struct_time_time_delta_minute_overflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 1, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 1, 0, 5, 1),
         time_delta(tm_min=59),
-        struct_time(2000, 1, 1, 1, 0, 0, 6, 1)
+        struct_time(2000, 1, 1, 1, 0, 0, 5, 1)
     )
 
 def test_add_struct_time_time_delta_hour_overflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 1, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 1, 0, 0, 5, 1),
         time_delta(tm_hour=23),
-        struct_time(2000, 1, 2, 0, 0, 0, 0, 2)
+        struct_time(2000, 1, 2, 0, 0, 0, 6, 2)
 
     )
 
 def test_add_struct_time_time_delta_second_underflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 1, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 1, 5, 1),
         time_delta(tm_sec=-2),
-        struct_time(1999, 12, 31, 23, 59, 59, 5, 365),
+        struct_time(1999, 12, 31, 23, 59, 59, 4, 365),
     )
 
 def test_add_struct_time_time_delta_minute_underflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 1, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 1, 0, 5, 1),
         time_delta(tm_min=-2),
-        struct_time(1999, 12, 31, 23, 59, 0, 5, 365),
+        struct_time(1999, 12, 31, 23, 59, 0, 4, 365),
     )
 
 def test_add_struct_time_time_delta_hour_underflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 1, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 1, 0, 0, 5, 1),
         time_delta(tm_hour=-2),
-        struct_time(1999, 12, 31, 23, 0, 0, 5, 365),
+        struct_time(1999, 12, 31, 23, 0, 0, 4, 365),
     )
 
 def test_add_struct_time_time_delta_day_underflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(tm_mday=-2),
-        struct_time(1999, 12, 30, 0, 0, 0, 4, 364),
+        struct_time(1999, 12, 30, 0, 0, 0, 3, 364),
     )
 
 def test_add_struct_time_time_delta_month_underflow():
     _assertStructTimeDelta(
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(tm_mon=-1),
-        struct_time(1999, 12, 1, 0, 0, 0, 3, 335),
+        struct_time(1999, 12, 1, 0, 0, 0, 2, 335),
     )
 
 def test_add_struct_time_time_delta_wday_not_implemented():
     assertRaises(
         NotImplementedError,
         add_struct_time_time_delta,
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(tm_wday=1),
     )
 
@@ -245,7 +248,7 @@ def test_add_struct_time_time_delta_yday_not_implemented():
     assertRaises(
         NotImplementedError,
         add_struct_time_time_delta,
-        struct_time(2000, 1, 1, 0, 0, 0, 6, 1),
+        struct_time(2000, 1, 1, 0, 0, 0, 5, 1),
         time_delta(tm_yday=1),
     )
 
@@ -258,13 +261,13 @@ def test_add_struct_time_time_delta_yday_not_implemented():
 def test_weekday_name_directive():
     # Test valid values.
     for i, name in enumerate((
-            'Sunday',
             'Monday',
             'Tuesday',
             'Wednesday',
             'Thursday',
             'Friday',
-            'Saturday'
+            'Saturday',
+            'Sunday'
         )):
         assertEqual(
             strptime(name, '%A'),
@@ -276,13 +279,13 @@ def test_weekday_name_directive():
 def test_abbrev_weekday_name_directive():
     # Test valid values.
     for i, name in enumerate((
-            'Sun',
             'Mon',
             'Tue',
             'Wed',
             'Thu',
             'Fri',
-            'Sat'
+            'Sat',
+            'Sun'
         )):
         assertEqual(
             strptime(name, '%a'),
@@ -510,43 +513,43 @@ def test_percent_directive():
 def test_iso8601_date():
     assertEqual(
         strptime('2020-12-23', '%Y-%m-%d'),
-        struct_time(2020, 12, 23, 0, 0, 0, 3, 358)
+        struct_time(2020, 12, 23, 0, 0, 0, 2, 358)
     )
 
 def test_iso8601_datetime_utc_offset():
     assertEqual(
         strptime('2020-12-23T01:01:20+00:00', '%Y-%m-%dT%H:%M:%S%z'),
-        struct_time(2020, 12, 23, 1, 1, 20, 3, 358)
+        struct_time(2020, 12, 23, 1, 1, 20, 2, 358)
     )
 
 def test_iso8601_datetime_with_nonzero_utc_offset():
     assertEqual(
         strptime('2020-12-23T05:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
-        struct_time(2020, 12, 23, 0, 1, 20, 3, 358)
+        struct_time(2020, 12, 23, 0, 1, 20, 2, 358)
     )
 
 def test_iso8601_datetime_with_nonzero_utc_offset_day_undeflow():
     assertEqual(
         strptime('2020-12-23T04:01:20+05:00', '%Y-%m-%dT%H:%M:%S%z'),
-        struct_time(2020, 12, 22, 23, 1, 20, 2, 357)
+        struct_time(2020, 12, 22, 23, 1, 20, 1, 357)
     )
 
 def test_iso8601_datetime_with_nonzero_utc_offset_day_overflow():
     assertEqual(
         strptime('2020-12-22T23:01:20-05:00', '%Y-%m-%dT%H:%M:%S%z'),
-        struct_time(2020, 12, 23, 4, 1, 20, 3, 358)
+        struct_time(2020, 12, 23, 4, 1, 20, 2, 358)
     )
 
 def test_iso8601_datetime_utc_timezone():
     assertEqual(
         strptime('2020-12-23T01:01:20Z', '%Y-%m-%dT%H:%M:%S%Z'),
-        struct_time(2020, 12, 23, 1, 1, 20, 3, 358)
+        struct_time(2020, 12, 23, 1, 1, 20, 2, 358)
     )
 
 def test_iso8601_datetime_utc_timezone_no_delimiters():
     assertEqual(
         strptime('20201223T010120Z', '%Y%m%dT%H%M%S%Z'),
-        struct_time(2020, 12, 23, 1, 1, 20, 3, 358)
+        struct_time(2020, 12, 23, 1, 1, 20, 2, 358)
     )
 
 def test_am_time():
@@ -570,7 +573,7 @@ def test_noon_pm_time_with_hour_12():
 def test_last_day_of_feb_during_leap_year():
     assertEqual(
         strptime('2000-02-29', '%Y-%m-%d'),
-        struct_time(2000, 2, 29, 0, 0, 0, 2, 60)
+        struct_time(2000, 2, 29, 0, 0, 0, 1, 60)
     )
 
 
@@ -596,6 +599,26 @@ def test_valid_hour_24_specified_as_pm():
 
 def test_invalid_hour_24_specified_as_pm():
     assertNone(strptime('20:10PM', '%H:%M%p'))
+
+
+# Test that our strptime() returns the same time_struct date values
+# (namely tm_wday and tm_yday) as the built-in Python time.strptime().
+
+def test_time_struct_values_identical_to_builtin():
+    raise Skip
+    for year in range(1600, 2400):
+        for month in range(1, 12):
+            for day in range(1, ABBREV_MONTH_NUM_DAYS_PAIRS[month - 1][1] + 1):
+                args = f'{year}-{month:02}-{day:02}', '%Y-%m-%d'
+                ours = strptime(*args)
+                builtin = time.strptime(*args)
+                # Only check the fields that we implement. The built-in
+                # time_struct has the extra tm_isdst attribute.
+                for field in STRUCT_TIME_FIELDS:
+                    assertEqual(
+                        getattr(ours, field),
+                        getattr(builtin, field)
+                    )
 
 
 if __name__ == '__main__':

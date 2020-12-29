@@ -8,10 +8,10 @@ from collections import namedtuple
 # Constants
 ###############################################################################
 
-WEEKDAY_NAMES = ('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-                 'Friday', 'Saturday')
+WEEKDAY_NAMES = ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
+                 'Saturday', 'Sunday')
 
-ABBREVIATED_WEEKDAY_NAMES = ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
+ABBREVIATED_WEEKDAY_NAMES = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
 
 MONTH_NAMES = ('January', 'February', 'March', 'April', 'May', 'June', 'July'
                'August', 'September', 'October', 'November', 'December')
@@ -20,7 +20,7 @@ ABBREVIATED_MONTH_NAMES = ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
                            'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
 
 # January 1, 2000 was a saturday.
-JAN_1_2000_DAY_NUM = 6
+JAN_1_2000_DAY_NUM = 5
 
 ABBREV_MONTH_NUM_DAYS_PAIRS = (
     ('Jan', 31),
