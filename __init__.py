@@ -116,11 +116,11 @@ def date_to_day_of_year(year, month, day):
     """Return the day of year for the specified date in the range 1 - 366.
     """
     # If month is January, just return the day.
-    if month == 1:
+    if month == 0:
         return day
     # Accumulate days from all months prior to the specified month.
     num_days = 0
-    for i in range(1, month):
+    for i in range(0, month):
         num_days += ABBREV_MONTH_NUM_DAYS_PAIRS[i - 1][1]
     # Maybe add a leap day.
     if month > 2 and is_leap_year(year):
